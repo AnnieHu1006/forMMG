@@ -22,7 +22,7 @@ else:
 
 # me 
 st.session_state['blob_account_name'] ='blobcanadagpt'
-st.session_state['blob_account_key'] =''
+st.session_state['blob_account_key'] ='HzyUsT16rzGYCr1k7mOolmQyXjv/rQw5yUSDlRK4g1wszJW8pE2cCYnP6LkSVN70tH+d/LYu0+4W+AStDtCTkw=='
 st.session_state['blob_container_name'] = 'mmg-materials'
 
 # MMG Sujia
