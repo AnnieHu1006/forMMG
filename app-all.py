@@ -27,14 +27,14 @@ else:
     st.session_state["init_list"]=[]
 
 # me 
-st.session_state['blob_account_name'] ='blobcanadagpt'
-st.session_state['blob_account_key'] =''
-st.session_state['blob_container_name'] = 'mmg-materials'
+#st.session_state['blob_account_name'] ='blobcanadagpt'
+#st.session_state['blob_account_key'] =''
+#st.session_state['blob_container_name'] = 'mmg-materials'
 
 # MMG Sujia
-#st.session_state['blob_account_name'] ='mmgreceiptmaterials'
-#st.session_state['blob_account_key'] =''
-#st.session_state['blob_container_name'] = 'mmg-meterials'
+st.session_state['blob_account_name'] ='mmgreceiptmaterials'
+st.session_state['blob_account_key'] ='JViTlzwJQcGKq3chpdYUcAGmmuamThnEbF3++dlpwrYJBv/GpQabr5fRAbp136PlFsWCAjhbDUwP+AStbYBazA=='
+st.session_state['blob_container_name'] = 'mmg-meterials'
 
 st.session_state['blob_client']: AzureBlobStorageClient = None
 st.session_state['blob_client'] = AzureBlobStorageClient(st.session_state['blob_account_name'],st.session_state['blob_account_key'],st.session_state['blob_container_name']) if st.session_state['blob_client'] is None else st.session_state['blob_client']
