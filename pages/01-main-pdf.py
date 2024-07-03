@@ -63,6 +63,9 @@ def extract_main_file_table(file_path):
                 for j in range(table.column_count):
                     result[j] = table.cells[i*table.column_count+j].content
                     #print(i,j,result[j])
+                    if result[j] == '': #Cost Centre WBS 没有提取出来
+                        result[j-1], result[j] = result[j-1].split('2')
+                        result[j] = '2'+ result[j]
                 if "Receipt" in result[0] and mres.size >0:
                     continue
                 else:
@@ -122,9 +125,9 @@ def main():
     pdf_bytes = blob_client.download_blob().content_as_bytes()
     #with open(file_path, "rb") as f:
     base64_pdf = base64.b64encode(pdf_bytes).decode('utf-8')
-    pdf_display = f'<embed src="data:application/pdf;base64,{base64_pdf}" ' \
-                  f'width="800" height="1000" type="application/pdf">'
-    st.markdown(pdf_display, unsafe_allow_html=True)  
+    pdf_display = f'<iframe src="data:application/pdf;base64,{base64_pdf}" ' \
+                  f'width="800" height="1000" type="application/pdf"></iframe>'
+    st.markdown(pdf_display, unsafe_allow_html=True)     
 
     output_main_table_path = file_path[:-3] + 'csv'
     print('output_main_table_path:',output_main_table_path)

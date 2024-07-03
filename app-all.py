@@ -16,9 +16,15 @@ st.session_state["selected_df"]=pd.DataFrame()
 st.session_state["thumbnail"]=[]
 if len(st.session_state["thumbnail"])==0:
     st.session_state["thumbnail"]=[]
+    st.session_state["ext_list"]=[]
+    st.session_state["init_list"]=[]
 else:
     st.session_state["thumbnail"].clear()
     st.session_state["thumbnail"]=[]
+    st.session_state["ext_list"].clear()
+    st.session_state["ext_list"]=[]
+    st.session_state["init_list"].clear()
+    st.session_state["init_list"]=[]
 
 # me 
 #st.session_state['blob_account_name'] ='blobcanadagpt'

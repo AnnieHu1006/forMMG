@@ -8,8 +8,10 @@ import base64
 from PIL import Image
 import numpy as np
 import matplotlib.pyplot as plt
+from streamlit_autorefresh import st_autorefresh
+import webbrowser
 #from attach_codes import extract_attach_keywords
-from attach_codes import extract_one_attach_keywords,find_same_items
+from attach_codes import extract_one_attach_keywords,find_same_items,one_value_find_same_items
 
 sslist = ["attach_table","tmp_t"]
 for ss in sslist:
@@ -164,14 +166,24 @@ def main():
     print(filenamelist[0])
     print(st.session_state["file_name"])
     
+    # 在不点击保存附件的按钮的时候，对每个提取出来的结果，自动进行保存    20240630
+    #for i in range(st.session_state.attach_num):
+    #    st.session_state.saved_attach.iloc[i,0] = filenamelist[i]
+    #    one_attach = selected_df[selected_df['file_name']==filenamelist[i]]
+    #    print(one_attach)
+    #    st.session_state.saved_attach.iloc[i,1] = one_attach['Date'].iloc[0] # Type
+    #    st.session_state.saved_attach.iloc[i,2] = one_attach['Type'].iloc[0] # Type
+    #    st.session_state.saved_attach.iloc[i,3] = float(one_attach['Amount'].sum()) # Amount
+    #    st.session_state.saved_attach.iloc[i,4] = one_attach['Crcy'].iloc[0] # Crcy
+    #    st.session_state.saved_attach.iloc[i,5] = one_attach['Accept_Invoice'].iloc[0] # Accept_Invoice
+    #print(st.session_state.saved_attach)
     
     if selection == page_names[0]:
         st.subheader('提取的附件信息汇总')
         st.dataframe(selected_df)
     elif selection == page_names[1]:
         st.subheader("每个附件的详细信息核对")
-        #展示附件的缩略图
-        
+        #展示附件的缩略图      
         print("filename list number : " + str(len(filenamelist)))
         thumbnail_id = 0
         col_num = 7
@@ -204,7 +216,7 @@ def main():
             if thumbnail_id >=len(filenamelist):
                 print("ROW break")
                 break
-         
+                
         # 获取第i个子附件 
         #thiscolums = st.columns(len(filenamelist))
         #for i, column in enumerate(thiscolums):
@@ -269,8 +281,8 @@ def main():
                                 "Meals Travelling (Employee)",
                                 "Meal NonTravel OffSite Employ",
                                 "Meal NonTravel Offsite NonEmpl",
-                                "Taxi/CarHire/Incidentals(DOM)",
-                                "Taxi/CarHire/Incidentals(INT)",
+                                "Taxi/CarHire/Incidentals (DOM)",
+                                "Taxi/CarHire/Incidentals (INT)",
                                 "Office & Admin Supplies",
                                 "Travel Health & Medicals",
                                 "Licences and Permits",
@@ -306,14 +318,16 @@ def main():
             else:
                 for row in range(len(chart_i_df)):
                     modifed_value = st.session_state["changed_rows"]["edited_rows"].get(row,'None')
-                    if modifed_value!= 'None':
+                    if modifed_value!= 'None' and 'Amount' in modifed_value:
                         sum_amount = sum_amount + float(modifed_value['Amount'])
                     else:
                         value = amount_to_float(chart_i_df['Amount'].iloc[row])
                         sum_amount = sum_amount + value
-            for row in range(len(st.session_state["changed_rows"]["added_rows"])):
-                value = st.session_state["changed_rows"]["added_rows"][row]['Amount']
-                sum_amount = sum_amount + value
+            if 'Amount' in st.session_state["changed_rows"]["added_rows"]:  # 防止刷新时的bug,   20240702
+                #print('st.session_state["changed_rows"]["added_rows"]',len(st.session_state["changed_rows"]["added_rows"]))
+                for row in range(len(st.session_state["changed_rows"]["added_rows"])):
+                    value = st.session_state["changed_rows"]["added_rows"][row]['Amount']
+                    sum_amount = sum_amount + value
                 
             #sum_amount = chart_i_df.iloc[:,6].sum()
             subattach_sum.iloc[0,2] = sum_amount
@@ -330,7 +344,9 @@ def main():
                 subattach_i = st.session_state.subattach_i 
                 print(st.session_state.saved_attach)
  
-            st.button('查验定额发票真伪', on_click=save_attach, args=(subattach_i,)) #待实现！！！！！！
+            if st.button('查验定额发票真伪'): #待实现！！！！！！
+                #webbrowser.open('https://inv-veri.chinatax.gov.cn/index.html?source=bdjj&e_keywordid2=92056973642')
+                driver.get("https://inv-veri.chinatax.gov.cn/index.html?source=bdjj&e_keywordid2=92056973642")
             
             #展示附件内容
             if file_name[-3:] == 'pdf':
@@ -349,65 +365,43 @@ def main():
                 img_this = blob_client.download_blob()
                 img = Image.open(img_this)
                 st.image(img, caption='Attachment image', use_column_width=True)
-    elif selection == page_names[2]:  
-            #example_data = pd.DataFrame(
-            #    {
-            #        "Select": [True, False, True],  # 选中列，st.data_editor需要
-            #        "Name": ["Item 1", "Item 2", "Item 3"],
-            #        "Value": [10, 20, 30]
-            #    }
-            #)
-             
-            # 添加选中列，st.data_editor需要
-            #edit_data = st.data_editor(example_data, key='data_editor_key')
-             
-            # 定义一个按钮来触发求和操作
-            #if st.button('Sum Selected Values'):
-            #    selected_rows = example_data[edit_data['Select'] == True]
-            #    print('selected_rows',selected_rows)
-            #    sum_values = selected_rows['Value'].sum()
-            #    st.write(f'Sum of selected values: {sum_values}')    
-                
+    elif selection == page_names[2]:                    
             st.write(f"这是提取的附件的结果：") 
             df_extract_edit = st.session_state.saved_attach.drop('Date', axis=1) # 隐藏Data列    20240609
             df_init_edit = st.session_state.chart_data.drop(['Cost Centre WBS'], axis=1) # 隐藏Data列    20240609
             ext_list,init_list = find_same_items(df_extract_edit,st.session_state.attach_num,df_init_edit) #对提取的结果，和主表进行比对   20240615
-            if 'Correspond' not in df_extract_edit.columns: #加入一列，是比对成功的，主表上的对应项    20240615
-                df_extract_edit.insert(loc=0, column ='Co', value=[None] * len(df_extract_edit)) 
-            html_str = df_init_edit.to_html(index=False) #对主表加入，比对成功的行修改颜色的显示   20240616
-            html_rows = html_str.split('</tr>') # 按照行进行拆分
-            #print(html_rows[0])
-            for i in range(len(ext_list)):
-                df_extract_edit['Co'].iloc[ext_list[i]] = init_list[i] + 1   
-                html_rows[init_list[i]+1] = html_rows[init_list[i]+1].replace('<tr>', '<tr style="background-color:lightblue;">') #background-color:lightblue  #color: blue
-                #print(df_extract_edit['Co'].iloc[ext_list[i]])         
-            html_str = '</tr>'.join(html_rows) # 将修改后的行组合到一起
-            confirmed_extract_df = st.data_editor(df_extract_edit.iloc[0:st.session_state.attach_num, :],
-                    column_config={
-                        "Type": st.column_config.SelectboxColumn(
-                            "Type",
-                            help="The category of the attach item",
-                            width="medium",
-                            options=[
-                                "Accommodation(DOM)",
-                                "Accommodation(INT)",
-                                "Airfares (DOM)",
-                                "Airfares (INT)",
-                                "Meals Travelling (Employee)",
-                                "Meal NonTravel OffSite Employ",
-                                "Meal NonTravel Offsite NonEmpl",
-                                "Taxi/CarHire/Incidentals(DOM)",
-                                "Taxi/CarHire/Incidentals(INT)",
-                                "Office & Admin Supplies",
-                                "Travel Health & Medicals",
-                                "Licences and Permits",
-                                "Training-courses, Training, Seminar, Conferences",
-                                "Telephone Subsidies (Business)",
-                                "Employee Memberships/Subscript"
-                            ],
-                        )
-                     },num_rows="dynamic",hide_index=True,key='editor')
+            print('init_list',init_list)
+            print('st.session_state["init_list"]',st.session_state["init_list"])
+            print('st.session_state["ext_list"]',st.session_state["ext_list"])
+            if st.session_state["ext_list"]==[]:  
+                st.session_state["ext_list"] = ext_list
+                st.session_state["init_list"] = init_list
             
+            if 'Co' not in df_extract_edit.columns: #加入一列，是比对成功的，主表上的对应项    20240615
+                df_extract_edit.insert(loc=0, column ='Co', value=[None] * len(df_extract_edit)) 
+            if 'Select' not in df_extract_edit.columns: #加入一列，是用于选择行的，主表上的对应项    20240630
+                df_extract_edit.insert(loc=0, column ='Select', value=[False] * len(df_extract_edit))                
+
+            for i in range(len(st.session_state["ext_list"])):
+                df_extract_edit['Co'].iloc[st.session_state["ext_list"][i]] = st.session_state["init_list"][i] + 1 
+            confirmed_extract_df = st.data_editor(df_extract_edit.iloc[0:st.session_state.attach_num, :],hide_index=True)              
+
+            # 定义一个按钮来触发求和操作，以及和主表的行的比较
+            if st.button('求和并比对'):
+                selected_rows = confirmed_extract_df[confirmed_extract_df['Select'] == True]
+                rindices = np.where(confirmed_extract_df['Select'] == True) # Select的行的索引   
+                st.session_state["select_sum"]=sum_values = selected_rows['Amount'].sum()
+                st.write(f'Sum of selected values: {st.session_state["select_sum"]}') 
+                init_row = one_value_find_same_items(selected_rows,sum_values,df_init_edit,st.session_state["init_list"]) #对求和的结果，和主表的剩余项进行比对   20240615
+                if init_row !=-1:
+                    for i in range(len(rindices[0])):
+                        print('row_index',rindices[0][i])
+                        st.session_state["init_list"].append(init_row)
+                        st.session_state["ext_list"].append(rindices[0][i]) 
+                        if 'Meal' in df_extract_edit['Type'].iloc[rindices[0][i]]: # 改Meal 类型                           
+                            st.session_state.saved_attach['Type'].iloc[rindices[0][i]] = df_init_edit['Expense Type'].iloc[init_row]
+                st_autorefresh(interval=1, limit=10, key="on_sum_button")
+ 
             if st.button('确定保存'): 
                 output_confirmed_table_name = st.session_state["file_name"]+'-attach-confirmed-results.csv'
                 output_confirmed_table_path = attach_files_folder + '/' + output_confirmed_table_name
@@ -416,7 +410,14 @@ def main():
                     st.session_state['blob_client'].upload_file(data,output_confirmed_table_path)                
 
             st.write(f"这是主页总表的结果：")
-            #st.dataframe(df_init_edit,hide_index=True)              
+            #st.dataframe(df_init_edit,hide_index=True)   
+            html_str = df_init_edit.to_html(index=False) #对主表加入，比对成功的行修改颜色的显示   20240616
+            html_rows = html_str.split('</tr>') # 按照行进行拆分
+            #print(html_rows[0])
+            for i in range(len(st.session_state["ext_list"])):   
+                html_rows[st.session_state["init_list"][i]+1] = html_rows[st.session_state["init_list"][i]+1].replace('<tr>', '<tr style="background-color:lightblue;">') #background-color:lightblue  #color: blue
+                #print(df_extract_edit['Co'].iloc[ext_list[i]])         
+            html_str = '</tr>'.join(html_rows) # 将修改后的行组合到一起            
             st.markdown(html_str, unsafe_allow_html=True)
             
 

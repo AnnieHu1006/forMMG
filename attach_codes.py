@@ -136,6 +136,62 @@ def invoice_keywords_judge(content, keywords): #用MMG的AOAI模型
     print(response.choices[0].message.content)  
     return response.choices[0].message.content
 
+def Date_tranformation(thisdate): #用MMG的AOAI模型
+    api_base = 'https://mmgaustraliaeastopenai.openai.azure.com/' 
+    api_key = '3c7360df29ba4a96834d2f7842e7734d'
+    deployment_name = 'GPT-4-1106-Preview'
+    api_version = '2024-02-01'
+
+    client = AzureOpenAI(
+        azure_endpoint=api_base,
+        api_key=api_key,  
+        api_version=api_version
+    )
+    #print(thisdate)
+    inputcontent = thisdate + " \n  Find the month, date and year from the above content, and output it as number and in the format of 'Month': ;'Date': ; 'Year': . "    
+    #print(inputcontent)
+
+    response = client.chat.completions.create(
+        model=deployment_name,
+        messages=[
+            {
+                "role": "user",
+                "content": inputcontent,
+            },
+        ],
+        temperature=0.7,
+        top_p=0.95,
+        max_tokens=2000
+    )
+
+    print(response.choices[0].message.content) 
+    attach_month=attach_date=attach_year=''
+    thislist = response.choices[0].message.content.split(';')
+    print(thislist)
+    if len(thislist)>=3: # 找到了对应的各项  20240616
+        thismonth = thislist[0]
+        thisdate = thislist[1]
+        thisyear = thislist[2] 
+        #print(thismoney, thiscurrency, thisdate, thistype)
+    else: #没找全怎么办，需要继续处理 20240703
+        return  ''
+    
+    if 'Month' or 'month' in thismonth:
+        tmp,temp_month = thismonth.split(':') 
+        attach_month = get_money_string(temp_month)
+        if len(attach_month)<2:
+            attach_month = '0' + attach_month
+    if 'Date' or 'date' in thisdate:
+        tmp,temp_date = thisdate.split(':')  
+        attach_date = get_money_string(temp_date)
+        if len(attach_date)<2:
+            attach_date = '0' + attach_date
+    if 'Year' or 'year' in thisyear:
+        tmp,temp_year = thisyear.split(':')  
+        attach_year = get_money_string(temp_year)
+    res = attach_month + '/' + attach_date + '/' + attach_year
+    return res
+
 def approve_words_judge(content, keywords): #用MMG的AOAI模型
     api_base = 'https://mmgaustraliaeastopenai.openai.azure.com/' 
     api_key = '3c7360df29ba4a96834d2f7842e7734d'
@@ -439,7 +495,8 @@ def keywords_extract_GPT4vision_enhance(image_path): #用MMG的AOAI模型和CV�
                     3. If it contains food, it should be identified as the meal type. \
                     4. If it contains mobile or wifi, it should be identified as telephone type. \
                     5. Determine the currency based on the content in the image. \
-                    6. If it is a taxi ticket, the total amount of money charged is the total amount or Chinese called 实收金额, not the fare amount or Chinese called 金额. \
+                    6. If it contains road or highway or '公路' or '过路', it should be identified as highway fees. \
+                    7. If it is a taxi ticket, the total amount of money charged is the total amount or Chinese called 实收金额, not the fare amount or Chinese called 金额. \
                     "
                     #4. Find the largest money and if it is larger than the total amount charged, the output Money should be the largest one.
                 },
@@ -540,6 +597,7 @@ def extract_one_attach_keywords(blob_name, blob_size,file_type, mres,temp_image_
         if cls.tag_name == "zzzzz" and cls.probability > 0.45: #需要用score限制一下，因为没有分other类别，如果是一条table的邮件回复啥的，score会低。
             result = [file_name,'1','1',cls.tag_name,str(cls.probability),'','','','','']
             result[5],result[6],result[7],result[8],result[9] = chi_invoice_extract_intell(file_Path) 
+            result[5] = Date_tranformation(result[5]) #做日期格式的统一转换
             print(result)
             mres = np.append(mres, [result], axis = 0) 
         elif cls.tag_name == "sssss" and cls.probability > 0.45:
@@ -560,6 +618,7 @@ def extract_one_attach_keywords(blob_name, blob_size,file_type, mres,temp_image_
                 result = [file_name,'1',str(j),cls.tag_name,str(cls.probability),'','','','',''] 
                 #print(subimg)
                 result[5],result[6],result[7],result[8] = keywords_extract_GPT4vision_enhance(subimg[0])
+                result[5] = Date_tranformation(result[5]) #做日期格式的统一转换
                 j=j+1
                 print(result)
                 mres = np.append(mres, [result], axis = 0) 
@@ -570,6 +629,7 @@ def extract_one_attach_keywords(blob_name, blob_size,file_type, mres,temp_image_
             else:  #国内的报销的文档类型的附件忽略，只处理国外的
                 result = [file_name,'1','1',cls.tag_name,str(cls.probability),'','','','','']
                 result[5],result[6],result[7],result[8] = keywords_extract_GPT4vision_enhance(file_Path)
+                result[5] = Date_tranformation(result[5]) #做日期格式的统一转换
                 print(result)
                 if result[8] !='CNY':#国内外混杂情况下，如果这一份附件是国内的，忽略，只处理国外的。这里默认Uber的都是在国外打车，而且币种识别正确
                     mres = np.append(mres, [result], axis = 0) 
@@ -586,6 +646,7 @@ def extract_one_attach_keywords(blob_name, blob_size,file_type, mres,temp_image_
             if cls.tag_name == "zzzzz" and cls.probability > 0.45: #需要用score限制一下，因为没有分other类别，如果是一条table的邮件回复啥的，score会低。
                 result = [file_name,str(i+1),'1',cls.tag_name,str(cls.probability),'','','','','']
                 result[5],result[6],result[7],result[8],result[9] = chi_invoice_extract_intell(image_path) 
+                result[5] = Date_tranformation(result[5]) #做日期格式的统一转换
                 print(result)
                 mres = np.append(mres, [result], axis = 0) 
             elif cls.tag_name == "sssss" and cls.probability > 0.38: # 0118高辉晓-27-Expense Receipt_026的score分比较低，所以这里改成了0.38
@@ -606,6 +667,7 @@ def extract_one_attach_keywords(blob_name, blob_size,file_type, mres,temp_image_
                     result = [file_name,str(i+1),str(j),cls.tag_name,str(cls.probability),'','','','','']
                     #print(subimg)
                     result[5],result[6],result[7],result[8] = keywords_extract_GPT4vision_enhance(subimg[0])
+                    result[5] = Date_tranformation(result[5]) #做日期格式的统一转换
                     j=j+1
                     print(result)
                     mres = np.append(mres, [result], axis = 0) 
@@ -626,6 +688,7 @@ def extract_one_attach_keywords(blob_name, blob_size,file_type, mres,temp_image_
                 if file_type!="DOM":#国内的报销的文档类型的附件忽略，只处理国外的  #国外的文档如果有多页的话，这里需要处理一下，还没处理！！！！！！
                     result = [file_name,str(i+1),'1',cls.tag_name,str(cls.probability),'','','','','']
                     result[5],result[6],result[7],result[8] = keywords_extract_GPT4vision_enhance(image_path)
+                    result[5] = Date_tranformation(result[5]) #做日期格式的统一转换
                     print(result)
                     if result[8] =='' or result[8] ==' ':
                         break
@@ -640,6 +703,7 @@ def extract_one_attach_keywords(blob_name, blob_size,file_type, mres,temp_image_
                 #有可能是中文医院定额发票错分成fffff类型了
                 result = [file_name,str(i+1),'1',cls.tag_name,str(cls.probability),'','','','','']
                 result[5],result[6],result[7],result[8] = keywords_extract_GPT4vision_enhance(image_path)
+                result[5] = Date_tranformation(result[5]) #做日期格式的统一转换
                 if 'medical' in result[6] or 'Medical' in result[6]:
                     result[6] = 'Travel Health & Medicals'
                     mres = np.append(mres, [result], axis = 0)
@@ -676,6 +740,8 @@ def find_same_items(df_extract_edit,df_extract_filenum,df_init_edit): #从主表
             positions = []
             for j, v in enumerate(df_init_edit['Receipt Amount']):
                 #print("value_to_find:",value_to_find)
+                if j in init_list:  #已被之前的项匹配过
+                    continue
                 if not np.isreal(v):
                     v = v.replace(',', '')
                 #print("i,v:",j,float(v))
@@ -686,10 +752,10 @@ def find_same_items(df_extract_edit,df_extract_filenum,df_init_edit): #从主表
                 if float(v)==value_to_find and target_str==source_str:
                    positions.append(j) 
             #positions = df_init_edit.index[df_init_edit['Receipt Amount'] == value_to_find].tolist()
-            print(positions)
-            if len(positions): #找到，并且有且仅有一个
-                print(df_init_edit['Expense Type'].iloc[positions[0]])
-                print(df_extract_edit['Type'].iloc[i])
+            #print(positions)
+            if len(positions)==1: #找到，并且有且仅有一个
+                #print(df_init_edit['Expense Type'].iloc[positions[0]])
+                #print(df_extract_edit['Type'].iloc[i])
                 if 'Meal' in df_extract_edit['Type'].iloc[i]: # 如果找到对应的Meal项，用主表的具体的Meal的类型给提取到的Meal类型赋值。 df_extract_edit 让显示页面的结果直接改变了？
                     #print(df_init_edit.iloc[positions[0]][2])
                     df_extract_edit['Type'].iloc[i] = df_init_edit['Expense Type'].iloc[positions[0]]
@@ -700,3 +766,28 @@ def find_same_items(df_extract_edit,df_extract_filenum,df_init_edit): #从主表
     print(ext_list)   
     print(init_list)
     return ext_list,init_list
+    
+def one_value_find_same_items(one_extract_item, value, df_init_edit,init_find):
+    value_to_find = float(value)
+    print("value_to_find:",value_to_find)
+    print('df_init_edit',df_init_edit)
+    print('init_find',init_find)
+    positions = []
+    for j, v in enumerate(df_init_edit['Receipt Amount']):       
+        if j in init_find:  #已被之前的项匹配过
+            continue
+        if not np.isreal(v):
+            v = v.replace(',', '')
+        #print("i,v:",j,float(v))
+        target_str = one_extract_item['Crcy'].iloc[0].replace(' ', '')
+        #print(target_str)
+        source_str = df_init_edit['Crcy'].iloc[j].replace(' ', '')
+        #print(source_str)
+        if abs(float(v)-value_to_find)<0.0001 and target_str==source_str:
+           positions.append(j) 
+    #positions = df_init_edit.index[df_init_edit['Receipt Amount'] == value_to_find].tolist()
+    #print(positions)
+    if len(positions)==1: #找到，并且有且仅有一个
+        return positions[0]
+    else:
+        return -1
