@@ -118,7 +118,6 @@ def get_file_type(main_table):
 
 def main():
     st.subheader("报销文件的主页面信息如下：")
-    print("------"+st.session_state["file_name"]+" extract/load main table begin------")
     main_file_name = st.session_state["file_name"]
     file_path = main_file_name + "-main.pdf" 
     blob_client = st.session_state['blob_client'].get_file(file_path)
@@ -127,7 +126,8 @@ def main():
     base64_pdf = base64.b64encode(pdf_bytes).decode('utf-8')
     pdf_display = f'<iframe src="data:application/pdf;base64,{base64_pdf}" ' \
                   f'width="800" height="1000" type="application/pdf"></iframe>'
-    st.markdown(pdf_display, unsafe_allow_html=True)     
+    st.markdown(pdf_display, unsafe_allow_html=True)   
+    print("------"+st.session_state["file_name"]+" extract/load main table begin------")
 
     output_main_table_path = file_path[:-3] + 'csv'
     print('output_main_table_path:',output_main_table_path)
