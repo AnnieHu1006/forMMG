@@ -373,9 +373,9 @@ def main():
             print('init_list',init_list)
             print('st.session_state["init_list"]',st.session_state["init_list"])
             print('st.session_state["ext_list"]',st.session_state["ext_list"])
-            if st.session_state["ext_list"]==[]:  
-                st.session_state["ext_list"] = ext_list
-                st.session_state["init_list"] = init_list
+            #if st.session_state["ext_list"]==[]:  
+            st.session_state["ext_list"] = ext_list
+            st.session_state["init_list"] = init_list
             
             if 'Co' not in df_extract_edit.columns: #加入一列，是比对成功的，主表上的对应项    20240615
                 df_extract_edit.insert(loc=0, column ='Co', value=[None] * len(df_extract_edit)) 
