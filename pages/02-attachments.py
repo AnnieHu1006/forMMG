@@ -344,8 +344,8 @@ def main():
                 subattach_i = st.session_state.subattach_i 
                 print(st.session_state.saved_attach)
  
-            if st.button('查验定额发票真伪'): #待实现！！！！！！
-                webbrowser.open('https://inv-veri.chinatax.gov.cn/index.html?source=bdjj&e_keywordid2=92056973642')
+            #if st.button('查验定额发票真伪'): #待实现！！！！！！
+                #webbrowser.open('https://inv-veri.chinatax.gov.cn/index.html?source=bdjj&e_keywordid2=92056973642')
                 #driver.get("https://inv-veri.chinatax.gov.cn/index.html?source=bdjj&e_keywordid2=92056973642")
             
             #展示附件内容
